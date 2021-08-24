@@ -610,6 +610,11 @@ int main(int argc, char* argv[])
             const std::string filename = FLAGS_root_dirs + "/" + FLAGS_seqName + "/body_3d_frontal_tracking/" + basename;
             assert(cv::imwrite(filename, aligned));
 
+            sprintf(basename, "%04d.obj", image_index + 1);
+            const std::string mesh_filename = FLAGS_root_dirs + "/" + FLAGS_seqName + "/body_3d_frontal_tracking/" + basename;
+            write_adam_obj(mesh2, mesh_filename.c_str());
+
+
             sprintf(basename, "%04d.txt", image_index + 1);
             const std::string param_filename = FLAGS_root_dirs + "/" + FLAGS_seqName + "/body_3d_frontal_tracking/" + basename;
             writeFrameParam(param_filename, batch_refit_params[i + 1]);
@@ -640,9 +645,15 @@ int main(int argc, char* argv[])
                 const std::string filename = FLAGS_root_dirs + "/" + FLAGS_seqName + "/body_3d_frontal_tracking/" + basename;
                 assert(cv::imwrite(filename, aligned));
 
+                sprintf(basename, "%04d.obj", image_index);
+                const std::string mesh_filename = FLAGS_root_dirs + "/" + FLAGS_seqName + "/body_3d_frontal_tracking/" + basename;
+                write_adam_obj(mesh1, mesh_filename.c_str());
+
                 sprintf(basename, "%04d.txt", image_index);
                 const std::string param_filename = FLAGS_root_dirs + "/" + FLAGS_seqName + "/body_3d_frontal_tracking/" + basename;
                 writeFrameParam(param_filename, batch_refit_params[i]);
+
+
             }
         }
     }

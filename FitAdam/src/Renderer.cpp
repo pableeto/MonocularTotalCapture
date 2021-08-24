@@ -3,6 +3,7 @@
 #include <GL/glut.h>    
 #include <GL/freeglut.h>    
 #include <glm/glm.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
@@ -620,6 +621,8 @@ void Renderer::MeshRender()
     else
     {
         assert(options.CameraMode == 1u);
+        printf("Camera Mode = 1.\n");
+        printf("XRot = %f, YRot = %f, -view_dist = %f\n", options.xrot, options.yrot, -options.view_dist);
         glTranslatef(0, 0, options.view_dist);
         glRotatef(options.xrot, 1.0, 0.0, 0.0);
         glRotatef(options.yrot, 0.0, 1.0, 0.0);
@@ -722,6 +725,7 @@ void Renderer::MeshRender()
         // MVP
         glm::mat4 mvMat,pMat,mvpMat;
         glGetFloatv(GL_MODELVIEW_MATRIX, &mvMat[0][0]);
+        printf("MVMat: %s\n", glm::to_string(mvMat).c_str());
         glGetFloatv(GL_PROJECTION_MATRIX, &pMat[0][0]);
         mvpMat = pMat * mvMat;
 

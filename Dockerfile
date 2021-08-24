@@ -1,13 +1,24 @@
-FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
+FROM nvidia/cuda:10.0-cudnn7-devel-ubuntu16.04
 
 LABEL maintainer="Necati Cihan Camgoz <n.camgoz@surrey.ac.uk>"
 
-ENV PATH=/usr/local/cuda-9.0/bin:${PATH}
-ENV LD_LIBRARY_PATH=/usr/local/cuda-9.0/lib64:${LD_LIBRARY_PATH}
-RUN ln -s /usr/local/cuda-9.0/lib64/libcudart.so /usr/lib/libcudart.so
+# Configure User info.
+ARG USERNAME=dev
+ARG USER_UID=1008
+ARG USER_GID=$USER_UID
+RUN groupadd --gid $USER_GID $USERNAME \
+    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
+    && apt-get update \
+    && apt-get install -y sudo \
+    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
+    && chmod 0440 /etc/sudoers.d/$USERNAME
 
-ENV CUDA_ARCH_BIN "50 52 60 61"
-ENV CUDA_ARCH_PTX "50 52 60 61"
+ENV PATH=/usr/local/cuda-10.0/bin:${PATH}
+ENV LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64:${LD_LIBRARY_PATH}
+RUN ln -s /usr/local/cuda-10.0/lib64/libcudart.so /usr/lib/libcudart.so
+
+ENV CUDA_ARCH_BIN "50 52 60 61 75"
+ENV CUDA_ARCH_PTX "50 52 60 61 75"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -65,10 +76,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN apt-get autoremove -y && apt-get autoclean -y
 
 # PYTHON
-RUN pip3 install --upgrade pip
+RUN pip3 install --upgrade pip==19.2
 RUN pip3 install --upgrade setuptools \
     wheel \
-    tensorflow-gpu==1.12.0 \
+    tensorflow-gpu==1.13.1 \
     opencv-python \
     scikit-image \
     Mako \
@@ -79,7 +90,7 @@ RUN pip3 install --upgrade setuptools \
 # LIBIGL
 ENV LIBIGL_ROOT=/opt/libigl
 WORKDIR ${LIBIGL_ROOT}
-RUN git clone https://github.com/libigl/libigl.git . && \
+RUN git clone -b v2.1.0 https://github.com/libigl/libigl.git . && \
     mkdir build && cd build && \
     cmake .. && \
     make all -j8
@@ -110,7 +121,7 @@ RUN mkdir build && \
     -D ENABLE_FAST_MATH=1 \
     -D CUDA_FAST_MATH=1 \
     -D BUILD_SHARED_LIBS=ON \
-    -D WITH_CUBLAS=1 .. &&\
+    -D WITH_CUBLAS=1 .. 
     make all -j8 && \
     make install
 ENV PATH=/opt/opencv/build/bin:${PATH}
@@ -126,6 +137,7 @@ RUN cd python && \
     pip install -r requirements.txt && \
     cd ..
 RUN cp Makefile.config.example Makefile.config
+#-DUSE_CUDNN=1
 RUN sed -i 's/# USE_CUDNN := 1/USE_CUDNN := 1/' Makefile.config
 RUN sed -i 's/CUDA_DIR := \/usr\/local\/cuda/CUDA_DIR := \/usr\/local\/cuda-9.0/' Makefile.config
 RUN sed -i 's/# PYTHON_LIBRARIES := boost_python3 python3.5m/PYTHON_LIBRARIES := boost_python3 python3.5m/' Makefile.config
@@ -133,7 +145,7 @@ RUN sed -i '/CUDA_ARCH := -gencode arch=compute_20,code=sm_20 \\/d' Makefile.con
 RUN sed -i '/		-gencode arch=compute_20,code=sm_21 \\/d' Makefile.config
 RUN sed -i '/		-gencode arch=compute_30,code=sm_30 \\/d' Makefile.config
 RUN sed -i '/		-gencode arch=compute_35,code=sm_35 \\/d' Makefile.config
-RUN sed -i 's/		-gencode arch=compute_50,code=sm_50 \\/CUDA_ARCH := -gencode arch=compute_50,code=sm_50 \\/' Makefile.config
+RUN sed -i 's/		-gencode arch=compute_50,code=sm_50 \\/CUDA_ARCH := -gencode arch=compute_75,code=sm_75 \\/' Makefile.config
 RUN sed -i 's/PYTHON_INCLUDE := \/usr\/include\/python2.7 \\/# PYTHON_INCLUDE := \/usr\/include\/python2.7 \\/' Makefile.config
 RUN sed -i 's/		\/usr\/lib\/python2.7\/dist-packages\/numpy\/core\/include/# 		\/usr\/lib\/python2.7\/dist-packages\/numpy\/core\/include/' Makefile.config
 RUN sed -i 's/# PYTHON_LIBRARIES := boost_python3 python3.5m/PYTHON_LIBRARIES := boost_python3 python3.5m/' Makefile.config
@@ -151,8 +163,8 @@ RUN echo "$CAFFE_ROOT/build/lib" >> /etc/ld.so.conf.d/caffe.conf && ldconfig
 # OPENPOSE
 ENV OPENPOSE_ROOT=/opt/openpose
 WORKDIR $OPENPOSE_ROOT
-RUN git clone https://github.com/CMU-Perceptual-Computing-Lab/openpose.git . && \
-    sed -i 's/set(Caffe_known_gpu_archs "${KEPLER} ${MAXWELL} ${PASCAL} ${VOLTA} ${TURING}")/set(Caffe_known_gpu_archs "${KEPLER} ${MAXWELL} ${PASCAL}")/' /opt/openpose/cmake/Cuda.cmake && \
+RUN git clone -b v1.5.0 https://github.com/CMU-Perceptual-Computing-Lab/openpose.git . && \
+    #sed -i 's/set(Caffe_known_gpu_archs "${KEPLER} ${MAXWELL} ${PASCAL} ${VOLTA} ${TURING}")/set(Caffe_known_gpu_archs "${KEPLER} ${MAXWELL} ${PASCAL}")/' /opt/openpose/cmake/Cuda.cmake && \
     mkdir build && cd build && \
     cmake -DCaffe_INCLUDE_DIRS=$CAFFE_ROOT/build/install/include \
           -DCaffe_LIBS=$CAFFE_ROOT/build/install/lib/libcaffe.so \

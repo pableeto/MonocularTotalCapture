@@ -1,7 +1,9 @@
 #include "meshTrackingProj.h"
 #include <random>
 #include <algorithm>
-#include "opencv2/gpu/gpu.hpp"
+//#include "opencv2/video/tracking.hpp"
+//#include "opencv2/gpu/gpu.hpp"
+#include "opencv2/ocl/ocl.hpp"
 // #define VISUALIZE_TRACKING
 
 const float depthThresh = 1e-2;  // threshold for determining visibility
@@ -45,21 +47,43 @@ const uint sample_dist)  // If sample_dist > 0, only return 1 constraint in ever
     {
         // use Brox optical flow
         // compute optical from from virtual Image to the target Img
-        cv::gpu::GpuMat frame0(sourceImg), frame1(targetImg);
+//        cv::Mat frame0 = sourceImg.clone();
+//        cv::Mat frame1 = targetImg.clone();
+        cv::ocl::oclMat frame0(sourceImg), frame1(targetImg);
         frame0.convertTo(frame0, CV_32F, 1.0 / 255.0);
         frame1.convertTo(frame1, CV_32F, 1.0 / 255.0);
-        const double brox_alpha = 0.197;
-        const double brox_gamma = 50.0;
-        const double brox_scale = 0.8;
-        const int brox_inner = 10;
-        const int brox_outer = 70;
-        const int brox_solver = 10;
-        cv::gpu::BroxOpticalFlow brox_flow(brox_alpha, brox_gamma, brox_scale, brox_inner, brox_outer, brox_solver);
+        // const double brox_alpha = 0.197;
+        // const double brox_gamma = 50.0;
+        // const double brox_scale = 0.8;
+        // const int brox_inner = 10;
+        // const int brox_outer = 70;
+        // const int brox_solver = 10;
 
-        cv::gpu::GpuMat cuda_fu, cuda_fv, cuda_bu, cuda_bv;
-        brox_flow(frame0, frame1, cuda_fu, cuda_fv);
-        brox_flow(frame1, frame0, cuda_bu, cuda_bv);
-        cv::Mat fu(cuda_fu), fv(cuda_fv), bu(cuda_bu), bv(cuda_bv);
+        cv::ocl::OpticalFlowDual_TVL1_OCL tvl1_flow;
+        cv::ocl::oclMat ocl_fu, ocl_fv, ocl_bu, ocl_bv;
+        tvl1_flow(frame0, frame1, ocl_fu, ocl_fv);
+        tvl1_flow(frame1, frame0, ocl_bu, ocl_bv);
+        cv::Mat fu(ocl_fu), fv(ocl_fv), bu(ocl_bu), bv(ocl_bv);
+
+        //brox_flow(frame0, frame1, cuda_fu, cuda_fv);
+        //brox_flow(frame1, frame0, cuda_bu, cuda_bv);        
+//        cv::Ptr<cv::DenseOpticalFlow> tvl1 = cv::createOptFlow_DualTVL1();
+        //cv::gpu::BroxOpticalFlow brox_flow(brox_alpha, brox_gamma, brox_scale, brox_inner, brox_outer, brox_solver);
+
+        // cv::Mat fuv, buv;
+        // tvl1->calc(frame0, frame1, fuv);
+        // tvl1->calc(frame1, frame0, buv);
+        
+        // cv::Mat fuv_ch[2];
+        // cv::Mat buv_ch[2];
+
+        // cv::split(fuv, fuv_ch);
+        // cv::split(buv, buv_ch);
+
+        //cv::gpu::GpuMat cuda_fu, cuda_fv, cuda_bu, cuda_bv;
+        //brox_flow(frame0, frame1, cuda_fu, cuda_fv);
+        //brox_flow(frame1, frame0, cuda_bu, cuda_bv);
+        //        cv::Mat fu(fuv_ch[0]), fv(fuv_ch[1]), bu(buv_ch[0]), bv(buv_ch[1]);
 
         cv::Mat cover;
         if (sample_dist > 0)
@@ -371,24 +395,48 @@ const uint sample_dist)
     cv::imshow( "Display window", resultImg );
     cv::waitKey(0);
 #endif
-
     // compute optical from from virtual Image to the target Img
-    cv::gpu::GpuMat frame0(resultImg), frame1(targetImg);
+    // use Brox optical flow
+    // compute optical from from virtual Image to the target Img
+//    cv::Mat frame0 = sourceImg.clone();
+//    cv::Mat frame1 = targetImg.clone();
+    cv::ocl::oclMat frame0(sourceImg), frame1(targetImg);
     frame0.convertTo(frame0, CV_32F, 1.0 / 255.0);
     frame1.convertTo(frame1, CV_32F, 1.0 / 255.0);
-    const double brox_alpha = 0.197;
-    const double brox_gamma = 50.0;
-    const double brox_scale = 0.8;
-    const int brox_inner = 10;
-    const int brox_outer = 70;
-    const int brox_solver = 10;
-    cv::gpu::BroxOpticalFlow brox_flow(brox_alpha, brox_gamma, brox_scale, brox_inner, brox_outer, brox_solver);
 
-    cv::gpu::GpuMat cuda_fu, cuda_fv, cuda_bu, cuda_bv;
-    brox_flow(frame0, frame1, cuda_fu, cuda_fv);
-    brox_flow(frame1, frame0, cuda_bu, cuda_bv);
+//        cv::gpu::GpuMat frame0(sourceImg), frame1(targetImg);
+    // const double brox_alpha = 0.197;
+    // const double brox_gamma = 50.0;
+    // const double brox_scale = 0.8;
+    // const int brox_inner = 10;
+    // const int brox_outer = 70;
+    // const int brox_solver = 10;
 
-    cv::Mat fu(cuda_fu), fv(cuda_fv), bu(cuda_bu), bv(cuda_bv);
+    cv::ocl::OpticalFlowDual_TVL1_OCL tvl1_flow;
+    cv::ocl::oclMat ocl_fu, ocl_fv, ocl_bu, ocl_bv;
+    tvl1_flow(frame0, frame1, ocl_fu, ocl_fv);
+    tvl1_flow(frame1, frame0, ocl_bu, ocl_bv);
+    cv::Mat fu(ocl_fu), fv(ocl_fv), bu(ocl_bu), bv(ocl_bv);
+
+
+//    cv::Ptr<cv::DenseOpticalFlow> tvl1 = cv::createOptFlow_DualTVL1();
+    //cv::gpu::BroxOpticalFlow brox_flow(brox_alpha, brox_gamma, brox_scale, brox_inner, brox_outer, brox_solver);
+
+//    cv::Mat fuv, buv;
+//    tvl1->calc(frame0, frame1, fuv);
+//    tvl1->calc(frame1, frame0, buv);
+    
+//    cv::Mat fuv_ch[2];
+//    cv::Mat buv_ch[2];
+
+//    cv::split(fuv, fuv_ch);
+//    cv::split(buv, buv_ch);
+
+    //cv::gpu::GpuMat cuda_fu, cuda_fv, cuda_bu, cuda_bv;
+    //brox_flow(frame0, frame1, cuda_fu, cuda_fv);
+    //brox_flow(frame1, frame0, cuda_bu, cuda_bv);
+//    cv::Mat fu(fuv_ch[0]), fv(fuv_ch[1]), bu(buv_ch[0]), bv(buv_ch[1]);
+    
     cv::Mat warped(1080, 1920, CV_8UC1); warped.setTo(cv::Scalar(0));
     cv::Mat tracking_valid(1080, 1920, CV_8UC1, cv::Scalar(0));
     uint count_threshold = 0;

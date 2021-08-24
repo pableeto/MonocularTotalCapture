@@ -1,4 +1,6 @@
 from __future__ import print_function, unicode_literals
+
+from numpy.lib.type_check import real_if_close
 import tensorflow as tf
 import numpy as np
 import numpy.linalg as nl
@@ -184,7 +186,17 @@ lscale2d_origin = np.zeros((num_samples), dtype=np.float32)
 rcrop_center2d_origin = np.zeros((num_samples, 2), dtype=np.float32)
 rscale2d_origin = np.zeros((num_samples), dtype=np.float32)
 
+borigin = None
+body_valid = None
+real_first_frame = True
+
 frame_indices = pkl_data[6]
+
+for i, f_index_1 in enumerate(frame_indices):
+    if(not os.path.exists(os.path.join(args.path, 'net_output', '{:012d}.txt'.format(f_index_1)))):
+        break
+
+start_from = int(f_index_1)
 for i, frame_index in enumerate(frame_indices):
     if frame_index < start_from:
         continue
@@ -193,7 +205,7 @@ for i, frame_index in enumerate(frame_indices):
     if frame_index == start_from:
         start_i = i
     print('Start running frame No. {:08d}'.format(frame_index))
-   
+
     # read the data here
     filename = os.path.join(image_root, pkl_data[4][i])
     image_v = cv2.imread(filename)[:, :, ::-1]  # convert to RGB order
@@ -226,7 +238,7 @@ for i, frame_index in enumerate(frame_indices):
     val_dict['bPAF'] = bPAF
 
     # store the wrist coordinate of previous frame, to help verify hand bounding boxes
-    if frame_index > start_from:
+    if (frame_index > start_from):
         lwrist_last = borigin[7]
         lwrist_valid_last = body_valid[7]
         rwrist_last = borigin[4]
@@ -247,7 +259,7 @@ for i, frame_index in enumerate(frame_indices):
     body_valid[bout] = False
 
     # store the wrist coordinate of current frame, to help verify hand bounding boxes
-    if frame_index > start_from:
+    if (frame_index > start_from):
         lwrist = borigin[7]
         lwrist_valid = body_valid[7]
         rwrist = borigin[4]
@@ -483,6 +495,8 @@ for i, frame_index in enumerate(frame_indices):
     lhand_track_size = fit_size_lhand * lscale2d_origin[start_i] / lscale2d
     rhand_track_size = fit_size_rhand * rscale2d_origin[start_i] / rscale2d
     prev_image_v = image_v
+
+    real_first_frame = False
 
     if args.visualize:
         nc = 3
